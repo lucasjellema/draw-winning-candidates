@@ -12,6 +12,12 @@
 
         .selectionMarker {
             display: none;
+            font-weight: 700;
+        }
+
+        .drawnCandidate {
+            font-weight: 700;
+            font-size: 26px;
         }
     </style>
 </head>
@@ -132,7 +138,8 @@
                 .attr("y", drawnRadius)
                 .attr("text-anchor", "middle")
                 .attr("alignment-baseline", "central")
-                .text(d => d.name);
+                .attr("class", "drawnCandidate")
+                .text(d => d.name)
         }
 
         let rotationTransition, rotating;
@@ -216,7 +223,15 @@
                     .attr("cx", position.x + 20)
                     .attr("cy", position.y + 16)
                     .attr("r", radius / 5)
-                    .attr("fill", colors[(i + colorRandomizeFactor) % colors.length])
+                    .attr("fill", "white")
+
+                candidateGroup.append("text")
+                    .attr("class", "selectionMarker")
+                    .attr("x", position.x + 20)
+                    .attr("y", position.y + 16)
+                    .attr("text-anchor", "middle")
+                    .attr("alignment-baseline", "central")
+                    .text(String.fromCharCode(65 + i));
 
                 candidateCircleSelector.on("click", (event, d) => {
                     candidateGroup.transition()
@@ -237,7 +252,6 @@
             if (!group) { createSpinningWheel(); }
             // display updated set of candidates on wheel
             addCandidatesToWheel()
-
             if (rotating)
                 rotationTransition = group.transition()
                     .duration(60000 / spinningWheelRPM) // Convert rpm to duration for one revolution
@@ -251,7 +265,26 @@
                 rotating = false
                 group.interrupt()
                 changePropertyOfStyleClass("selectionMarker", "display", "block")
-                console.log(`current rotation ${getCurrentRotation(group)}`)
+
+                // group.selectAll("text.selectionMarker")
+                //     .attr("transform", `rotate(${-getCurrentRotation(group)}) `)
+
+                // Select the text elements
+                var texts = group.selectAll("text");
+
+                // Apply rotation to each text element
+                texts.each(function () {
+                    // Get the current text element
+                    var text = d3.select(this);
+
+                    // Get the x and y coordinates of the text element
+                    var x = text.attr("x");
+                    var y = text.attr("y");
+
+                    // Apply a rotation transformation
+                    text.attr("transform", `rotate(${-getCurrentRotation(group)},${x} , ${y})`);
+                });
+
             } else {
                 rotating = true;
                 startRotation()
