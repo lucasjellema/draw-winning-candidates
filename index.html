@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Public Draw</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        .cover {
+            fill: rgb(238, 233, 233);
+            opacity: 1.0;
+        }
+
+        .selectionMarker {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <button id="toggleCover">Onthul & Verhul</button>
+    <button id="shuffleButton">Hussel Names</button>
+    <button id="rotateButton">Draai & Stop het wiel</button>
+
+    <br />
+    <br />
+    <br />
+
+    <div id="map-container"></div>
+
+    <script>
+        const width = 1200, height = 1000
+        const colors = d3.schemeCategory10;
+        let names = ["Jeffrey", "Timothy", "Wijnand", "Michiel", "Matthijs"]
+        let candidates = []
+        const drawnCandidates = []
+        let coverOn = true
+
+        names.forEach((name, i) => {
+            const candidate = { name: name, id: i, color: colors[i % colors.length] }
+            candidates.push(candidate)
+        })
+
+
+        const svg = d3.select("#map-container")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const radius = width / (names.length * 5)
+        const drawnRadius = radius * 1.5
+        const circleFormationRadius = 200;
+
+        let spinningWheelRPM = 40; // revolutions per minute
+
+
+        const shuffleZone = svg.append("g")
+        // Draw circles for each name
+        const circles = shuffleZone.selectAll("circle")
+            .data(candidates, (d) => d.id)
+            .enter()
+            .append("circle")
+            .attr("cx", (d, i) => (i + 0.5) * radius * 3)
+            .attr("cy", radius)
+            .attr("r", radius)
+            .attr("fill", (d, i) => d.color)
+
+        // Add text to each circle
+        shuffleZone.selectAll("text")
+            .data(candidates, (d) => d.id)
+            .enter()
+            .append("text")
+            .attr("x", (d, i) => (i + 0.5) * radius * 3)
+            .attr("y", radius)
+            .attr("text-anchor", "middle")
+            .attr("alignment-baseline", "central")
+            .text(d => d.name);
+
+        // Add a second circle (cover) on top
+        shuffleZone.selectAll(".cover")
+            .data(candidates)
+            .enter()
+            .append("circle")
+            .attr("class", "cover")
+            .attr("cx", (d, i) => (i + 0.5) * radius * 3)
+            .attr("cy", radius)
+            .attr("r", radius);
+
+        // Function to update positions
+        const shuffleCandidates = () => {
+            candidates.sort((a, b) => Math.random() - 0.5)
+            // Update circle positions
+            shuffleZone.selectAll("circle")
+                .data(candidates, (d) => d.id)
+                .transition() // Smooth transition
+                .duration(1000)
+                .attr("cx", (d, i) => (i + 0.5) * radius * 3)
+
+
+            // Update text positions
+            shuffleZone.selectAll("text")
+                .data(candidates, (d) => d.id)
+                .transition() // Smooth transition
+                .duration(1000)
+                .attr("x", (d, i) => (i + 0.5) * radius * 3);
+        }
+
+        let drawnZoneGroup
+        const createDrawnZone = () => {
+            drawnZoneGroup = svg.append("g")
+                .attr("transform", `translate(0, ${2 * circleFormationRadius + 4.5 * radius})`);
+
+        }
+
+        const displayDrawnCandidates = () => {
+            if (!drawnZoneGroup) createDrawnZone();
+            // Draw circles for each name
+            const circles = drawnZoneGroup.selectAll("circle")
+                .data(drawnCandidates, (d) => d.id)
+                .enter()
+                .append("circle")
+                .attr("cx", (d, i) => (i + 0.5) * drawnRadius * 3)
+                .attr("cy", drawnRadius)
+                .attr("r", drawnRadius)
+                .attr("fill", (d, i) => d.color)
+
+            // Add text to each circle
+            drawnZoneGroup.selectAll("text")
+                .data(drawnCandidates, (d) => d.id)
+                .enter()
+                .append("text")
+                .attr("x", (d, i) => (i + 0.5) * drawnRadius * 3)
+                .attr("y", drawnRadius)
+                .attr("text-anchor", "middle")
+                .attr("alignment-baseline", "central")
+                .text(d => d.name);
+        }
+
+        let rotationTransition, rotating;
+        let group, spinningWheelGroup;
+
+        // Function to calculate circle positions
+        function calculatePosition(index, total, radius) {
+            const angle = (index / total) * Math.PI * 2; // Angle in radians
+            return {
+                x: radius * Math.cos(angle),
+                y: radius * Math.sin(angle)
+            };
+        }
+
+        const createSpinningWheel = () => {
+            // Create a group to hold the circles
+            spinningWheelGroup = svg.append("g")
+                .attr("transform", `translate(${width / 2}, ${circleFormationRadius + 3.5 * radius})`);
+            group = spinningWheelGroup.append("g")
+
+        }
+
+
+        function addToDrawnCandidates(candidate) {
+            if (!drawnCandidates.includes(candidate)) {
+                drawnCandidates.push(candidate);
+                console.log(`Added ${candidate.name}. Drawn candidates:`, drawnCandidates);
+            }
+            // remove from candidates
+            const temp = candidates.filter((c) => c.id != candidate.id)
+            candidates = temp
+            displayDrawnCandidates()
+        }
+
+        const addCandidatesToWheel = () => {
+            group.selectAll("*").remove()
+            const colorRandomizeFactor = Math.floor(colors.length * Math.random())
+            // Draw circles in a circle formation
+            candidates.forEach((candidate, i) => {
+                const position = calculatePosition(i, candidates.length, circleFormationRadius);
+
+                const candidateGroup = group.append("g")
+                // Append circle to the group
+                const candidateCircle = candidateGroup.append("circle")
+                    .attr("cx", position.x)
+                    .attr("cy", position.y)
+                    .attr("r", radius)
+                    .attr("fill", candidate.color)
+
+                candidateCircle.on("click", () => {
+                    candidateGroup.transition()
+                        .duration(500)
+                        .attr("transform", "translate(" + candidateCircle.attr("x") + "," + candidateCircle.attr("y") + ") scale(0)")
+                        .remove();
+                    addToDrawnCandidates(candidate);;
+                });
+
+                candidateGroup.append("text")
+                    .attr("x", position.x)
+                    .attr("y", position.y)
+                    .attr("text-anchor", "middle")
+                    .attr("alignment-baseline", "central")
+                    .text(d => candidate.name);
+
+                const candidateCircleCover = candidateGroup.append("circle")
+                    .attr("class", "cover")
+                    .attr("cx", position.x)
+                    .attr("cy", position.y)
+                    .attr("r", radius)
+
+                candidateCircleCover.on("click", (event, d) => {
+                    candidateGroup.transition()
+                        .duration(500)
+                        .attr("transform", "scale(0)")
+                        .remove();
+                    addToDrawnCandidates(candidate);;
+                });
+
+                const candidateCircleSelector = candidateGroup.append("circle")
+                    .attr("class", "selectionMarker")
+                    .attr("cx", position.x + 20)
+                    .attr("cy", position.y + 16)
+                    .attr("r", radius / 5)
+                    .attr("fill", colors[(i + colorRandomizeFactor) % colors.length])
+
+                candidateCircleSelector.on("click", (event, d) => {
+                    candidateGroup.transition()
+                        .duration(500)
+                        .attr("transform", "scale(0)")
+                        .remove();
+                    addToDrawnCandidates(candidate);;
+                });
+
+            });
+
+        }
+
+
+
+        // Rotation function
+        const startRotation = () => {
+            if (!group) { createSpinningWheel(); }
+            // display updated set of candidates on wheel
+            addCandidatesToWheel()
+
+            if (rotating)
+                rotationTransition = group.transition()
+                    .duration(60000 / spinningWheelRPM) // Convert rpm to duration for one revolution
+                    .ease(d3.easeLinear) // Linear easing for constant rotation speed
+                    .attrTween("transform", () => d3.interpolateString("rotate(0)", "rotate(360)"))
+                    .on("end", startRotation); // Loop the animation
+        }
+
+        const toggleRotation = () => {
+            if (rotating) {
+                rotating = false
+                group.interrupt()
+                changePropertyOfStyleClass("selectionMarker", "display", "block")
+                console.log(`current rotation ${getCurrentRotation(group)}`)
+            } else {
+                rotating = true;
+                startRotation()
+                changePropertyOfStyleClass("selectionMarker", "display", "none")
+            }
+        }
+
+        const getCurrentRotation = (element) => {
+            // Extract the transform attribute
+            const transform = element.attr("transform");
+
+            // Regular expression to match the rotate part of the transform attribute
+            const rotateRegex = /rotate\(([^,)]+),?([^,)]+)?,?([^,)]+)?\)/;
+
+            // Apply regex to the transform string
+            const matches = rotateRegex.exec(transform);
+
+            // Return the rotation angle or 0 if no rotation
+            return matches ? parseFloat(matches[1]) : 0;
+        }
+
+        const changePropertyOfStyleClass = (className, property, newValue) => {
+            // Access the stylesheets of the document
+            for (let sheet of document.styleSheets) {
+                try {
+                    // Access the rules of each stylesheet
+                    for (let rule of sheet.cssRules) {
+                        // Find the rule with the .showing selector
+                        if (rule.selectorText === `.${className}`) {
+                            rule.style[property] = newValue; // Change the display property
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Could not access stylesheet: " + sheet.href);
+                }
+            }
+        }
+
+
+        const toggleCover = () => {
+            changePropertyOfStyleClass("cover", "opacity", coverOn ? 0 : 1)
+            coverOn = !coverOn;
+        }
+        // Add the toggle button functionality
+        document.getElementById("toggleCover").addEventListener("click", toggleCover);
+        document.getElementById("shuffleButton").addEventListener("click", shuffleCandidates);
+        document.getElementById("rotateButton").addEventListener("click", toggleRotation);
+
+
+    </script>
+
+</body>
+
+</html>
