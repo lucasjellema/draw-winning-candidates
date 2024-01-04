@@ -45,8 +45,6 @@
             const candidate = { name: name, id: i, color: colors[i % colors.length] }
             candidates.push(candidate)
         })
-
-
         const svg = d3.select("#map-container")
             .append("svg")
             .attr("width", width)
@@ -55,12 +53,8 @@
         const radius = width / (names.length * 5)
         const drawnRadius = radius * 1.5
         const circleFormationRadius = 200;
-
         let spinningWheelRPM = 40; // revolutions per minute
-
-
         const shuffleZone = svg.append("g")
-        // Draw circles for each name
         const circles = shuffleZone.selectAll("circle")
             .data(candidates, (d) => d.id)
             .enter()
@@ -69,8 +63,6 @@
             .attr("cy", radius)
             .attr("r", radius)
             .attr("fill", (d, i) => d.color)
-
-        // Add text to each circle
         shuffleZone.selectAll("text")
             .data(candidates, (d) => d.id)
             .enter()
@@ -114,7 +106,6 @@
         const createDrawnZone = () => {
             drawnZoneGroup = svg.append("g")
                 .attr("transform", `translate(0, ${2 * circleFormationRadius + 4.5 * radius})`);
-
         }
 
         const displayDrawnCandidates = () => {
@@ -163,10 +154,9 @@
         }
 
 
-        function addToDrawnCandidates(candidate) {
+        const addToDrawnCandidates = (candidate) => {
             if (!drawnCandidates.includes(candidate)) {
                 drawnCandidates.push(candidate);
-                console.log(`Added ${candidate.name}. Drawn candidates:`, drawnCandidates);
             }
             // remove from candidates
             const temp = candidates.filter((c) => c.id != candidate.id)
@@ -194,7 +184,7 @@
                         .duration(500)
                         .attr("transform", "translate(" + candidateCircle.attr("x") + "," + candidateCircle.attr("y") + ") scale(0)")
                         .remove();
-                    addToDrawnCandidates(candidate);;
+                    addToDrawnCandidates(candidate);
                 });
 
                 candidateGroup.append("text")
@@ -215,7 +205,7 @@
                         .duration(500)
                         .attr("transform", "scale(0)")
                         .remove();
-                    addToDrawnCandidates(candidate);;
+                    addToDrawnCandidates(candidate);
                 });
 
                 const candidateCircleSelector = candidateGroup.append("circle")
@@ -238,7 +228,7 @@
                         .duration(500)
                         .attr("transform", "scale(0)")
                         .remove();
-                    addToDrawnCandidates(candidate);;
+                    addToDrawnCandidates(candidate);
                 });
 
             });
@@ -266,23 +256,12 @@
                 group.interrupt()
                 changePropertyOfStyleClass("selectionMarker", "display", "block")
 
-                // group.selectAll("text.selectionMarker")
-                //     .attr("transform", `rotate(${-getCurrentRotation(group)}) `)
-
-                // Select the text elements
-                var texts = group.selectAll("text");
-
-                // Apply rotation to each text element
+                const texts = group.selectAll("text");
                 texts.each(function () {
-                    // Get the current text element
-                    var text = d3.select(this);
-
-                    // Get the x and y coordinates of the text element
-                    var x = text.attr("x");
-                    var y = text.attr("y");
-
-                    // Apply a rotation transformation
-                    text.attr("transform", `rotate(${-getCurrentRotation(group)},${x} , ${y})`);
+                    const text = d3.select(this);
+                    const x = text.attr("x");
+                    const y = text.attr("y");
+                    text.attr("transform", `rotate(${-getCurrentRotation(group)},${x} , ${y})`); // compensate for the group's rotation with counter rotation for the text element
                 });
 
             } else {
@@ -323,7 +302,6 @@
                 }
             }
         }
-
 
         const toggleCover = () => {
             changePropertyOfStyleClass("cover", "opacity", coverOn ? 0 : 1)
